@@ -1,17 +1,11 @@
 # NetSurf for Nintendo Switch 2 & Switch 1 (`netsurf-switch2`)
 
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-Support%20this%20project-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/davidkalil10)
+
 A port of the NetSurf browser engine to **Nintendo Switch 2** (`ounce-devkit` / `libounce` + `OunceVK`) and **Nintendo Switch 1** (`devkitA64` / `libnx`). Verified rendering real sites over HTTPS on hardware.
 
 > **Nintendo Switch 2 Port (`ounce-devkit` / `libounce` + `OunceVK`):** Adapted and maintained by **David Kalil Braga** ([@davidkalil10](https://github.com/davidkalil10)).
 > Special thanks to **[etonedemid](https://github.com/etonedemid)**, creator of the original **[netsurf-switch](https://github.com/etonedemid/netsurf-switch)** port, and to the **[NetSurf Browser](https://www.netsurf-browser.org/)** team.
-
-## Support
-
-If you'd like to support development:
-
-- USDT (TRC20): `TCJ4HMJF3JHQG66khYTj98Em7v74j3cry9`
-- Bitcoin: `bc1qaeypp2m5h74alrmhyu4zvzf3yyf58k6mcw7868`
-- Monero: `45npN9u6zMFE7xMxfszfWBX2jdDdtZaogcGex4s5D7QDNsGPtbXjtjtXpbx9cnxLaKXC1KzGgckN2fMwrYrw5yqPTG2KiPj`
 
 ## What's in
 
@@ -97,3 +91,11 @@ JavaScript can be turned off with `enable_javascript:0` in
 - A or **ZR**: click / **ZL**: alternate/context click (NetSurf's action-2)
 - L/R: page up/down / B: escape / Plus: quit
 - Tap URL bar or any HTML text field: native keyboard
+
+## Support
+
+If you find **netsurf-switch2** and our Nintendo Switch 2 homebrew ports useful, consider buying me a coffee to support continued development and maintenance:
+
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/davidkalil10)
+
+👉 **[https://ko-fi.com/davidkalil10](https://ko-fi.com/davidkalil10)**
