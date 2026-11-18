@@ -608,7 +608,7 @@ struct decoder {
 	int frames_decoded;
 };
 
-#ifdef __SWITCH__
+#if defined(__SWITCH__) && !defined(__SWITCH2__)
 static enum AVPixelFormat get_hw_format(AVCodecContext *ctx,
 		const enum AVPixelFormat *fmts)
 {
@@ -642,7 +642,7 @@ static bool open_video(struct decoder *d, bool try_hw)
 	d->vctx->thread_count = 3;
 	d->vctx->thread_type = FF_THREAD_FRAME | FF_THREAD_SLICE;
 
-#ifdef __SWITCH__
+#if defined(__SWITCH__) && !defined(__SWITCH2__)
 	if (try_hw && av_hwdevice_ctx_create(&d->hwdev,
 			AV_HWDEVICE_TYPE_NVTEGRA, NULL, NULL, 0) == 0) {
 		d->vctx->hw_device_ctx = av_buffer_ref(d->hwdev);

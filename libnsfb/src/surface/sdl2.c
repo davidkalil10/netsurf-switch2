@@ -627,6 +627,9 @@ static int sdl2_initialise(nsfb_t *nsfb)
         return -1;
 
     SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
+#ifdef __SWITCH2__
+    SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengles2");
+#endif
 
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER |
                  SDL_INIT_GAMECONTROLLER) < 0) {
@@ -642,7 +645,12 @@ static int sdl2_initialise(nsfb_t *nsfb)
                                     SDL_WINDOWPOS_UNDEFINED,
                                     SDL_WINDOWPOS_UNDEFINED,
                                     nsfb->width, nsfb->height,
-                                    SDL_WINDOW_SHOWN);
+#ifdef __SWITCH2__
+                                    SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL
+#else
+                                    SDL_WINDOW_SHOWN
+#endif
+                                    );
     if (priv->window == NULL) {
         fprintf(stderr, "sdl2: window create failed: %s\n", SDL_GetError());
         free(priv);

@@ -1,0 +1,213 @@
+name: Build Switch 1 & Switch 2 NRO
+
+on:
+  push:
+    branches: [ main, master ]
+    tags: [ 'v*' ]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build-switch1:
+    name: Switch 1 (libnx)
+    runs-on: ubuntu-latest
+    container:
+      image: devkitpro/devkita64:20260219
+
+    steps:
+      - name: Install host utilities for NetSurf buildsystem
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            build-essential flex bison gperf git xxd zlib1g-dev libpng-dev libjpeg-dev \
+            python3 ca-certificates curl xz-utils zstd patch perl
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Cache Switch 1 prefix (libiconv + QuickJS-ng)
+        uses: actions/cache@v4
+        with:
+          path: prefix-switch
+          key: netsurf-switch1-prefix-v1
+
+      - name: Install Switch 1 portlibs
+        run: |
+          set -euo pipefail
+          sleep 5
+          dkp-pacman -R --noconfirm switch-tinyxml2 || true
+          sync_ok=0
+          for attempt in 1 2 3 4; do
+            if dkp-pacman -Sy --noconfirm && dkp-pacman -S --needed --noconfirm \
+              switch-sdl2 \
+              switch-freetype \
+              switch-libpng \
+              switch-libjpeg-turbo \
+              switch-libwebp \
+              switch-curl \
+              switch-mbedtls \
+              switch-zlib \
+              switch-bzip2 \
+              switch-libdav1d \
+              switch-ffmpeg \
+              switch-pkg-config; then
+              sync_ok=1
+              break
+            fi
+            sleep $((attempt * 15))
+          done
+          if [ "${sync_ok}" -ne 1 ]; then
+            test -f /opt/devkitpro/portlibs/switch/lib/libSDL2.a
+            test -f /opt/devkitpro/portlibs/switch/lib/libcurl.a
+          fi
+
+      - name: Build Switch 1 local prefix and NetSurf NRO
+        run: |
+          set -euo pipefail
+          ROOT_DIR="$(pwd)"
+          if [[ ! -f "$ROOT_DIR/prefix-switch/lib/libiconv.a" ]] || [[ ! -f "$ROOT_DIR/prefix-switch/lib/libquickjs.a" ]]; then
+            bash "$ROOT_DIR/tools-switch/build-prefix.sh" "$ROOT_DIR/prefix-switch"
+          fi
+          export DEVKITPRO=/opt/devkitpro
+          export DEVKITA64=$DEVKITPRO/devkitA64
+          export PORTLIBS_PREFIX=$DEVKITPRO/portlibs/switch
+          export PREFIX_LOCAL="$ROOT_DIR/prefix-switch"
+          export PATH="$PORTLIBS_PREFIX/bin:$DEVKITA64/bin:$DEVKITPRO/tools/bin:$PATH"
+          ARCH_FLAGS="-march=armv8-a+crc+crypto -mtune=cortex-a57 -mtp=soft -fPIC -ftls-model=local-exec"
+          CPPFLAGS="-D__SWITCH__ -I${PREFIX_LOCAL}/include -I${PORTLIBS_PREFIX}/include -I${DEVKITPRO}/libnx/include"
+          export CFLAGS="$CPPFLAGS $ARCH_FLAGS -O2 -ffunction-sections -fdata-sections"
+          export CXXFLAGS="$CFLAGS"
+          export LDFLAGS="$ARCH_FLAGS -L${PREFIX_LOCAL}/lib -L${PORTLIBS_PREFIX}/lib -L${DEVKITPRO}/libnx/lib"
+          export PKG_CONFIG_LIBDIR="$ROOT_DIR/inst-framebuffer/lib/pkgconfig:${PREFIX_LOCAL}/lib/pkgconfig:${PORTLIBS_PREFIX}/lib/pkgconfig"
+          unset PKG_CONFIG_PATH
+          rm -f inst-framebuffer/build-stamp netsurf/nsfb
+          make HOST=aarch64-none-elf TARGET=framebuffer -j"$(nproc)"
+          bash tools-switch/package.sh
+          cp -f netsurf/switch-dist/netsurf.nro netsurf-switch1.nro
+
+      - name: Upload Switch 1 NRO artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: netsurf-switch1-nro
+          path: netsurf-switch1.nro
+          if-no-files-found: error
+
+  build-switch2:
+    name: Switch 2 (libounce + OunceVK)
+    runs-on: ubuntu-latest
+    container:
+      image: devkitpro/devkita64:20260219
+    env:
+      OUNCE_DEVKIT_TAG: "20261115b"
+      OUNCE_DEVKIT_COMMIT: "0f38ba80d7ee768c5749278f127749d14ece2036"
+
+    steps:
+      - name: Install host utilities for NetSurf buildsystem
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            build-essential flex bison gperf git xxd zlib1g-dev libpng-dev libjpeg-dev \
+            python3 ca-certificates curl xz-utils zstd patch perl
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Cache Switch 2 FFmpeg 7.1 and local prefix
+        uses: actions/cache@v4
+        with:
+          path: |
+            prefix-switch2
+            build-switch2/ffmpeg-install
+          key: netsurf-switch2-deps-ounce-20261115b-v1
+
+      - name: Run Switch 2 package verifier unit tests
+        run: python3 tests/test_switch2_package.py
+
+      - name: Install Switch portlibs and ounce-devkit (Switch 2 SDK)
+        run: |
+          set -euo pipefail
+          sleep 10
+          dkp-pacman -R --noconfirm switch-tinyxml2 || true
+
+          sync_ok=0
+          for attempt in 1 2 3 4; do
+            echo "Synchronizing devkitPro package databases and portlibs (attempt ${attempt}/4)..."
+            if dkp-pacman -Sy --noconfirm && dkp-pacman -S --needed --noconfirm \
+              switch-sdl2 \
+              switch-freetype \
+              switch-libpng \
+              switch-libjpeg-turbo \
+              switch-libwebp \
+              switch-curl \
+              switch-mbedtls \
+              switch-zlib \
+              switch-bzip2 \
+              switch-libdav1d \
+              switch-pkg-config; then
+              sync_ok=1
+              break
+            fi
+            sleep $((attempt * 15))
+          done
+          if [ "${sync_ok}" -ne 1 ]; then
+            echo "Checking preinstalled Switch portlibs..."
+            test -f /opt/devkitpro/portlibs/switch/lib/libSDL2.a
+            test -f /opt/devkitpro/portlibs/switch/lib/libcurl.a
+          fi
+
+          sdk="${RUNNER_TEMP:-/tmp}/ounce-devkit"
+          rm -rf "$sdk"
+          git init "$sdk"
+          git -C "$sdk" fetch --depth=1 https://github.com/ouncebrew/ounce-devkit.git "$OUNCE_DEVKIT_COMMIT"
+          git -C "$sdk" checkout --detach FETCH_HEAD
+          test "$(git -C "$sdk" rev-parse HEAD)" = "$OUNCE_DEVKIT_COMMIT"
+          bash "$sdk/install.sh" "$OUNCE_DEVKIT_TAG"
+          test -f /opt/devkitpro/libounce/switch2_rules
+          test -f /opt/devkitpro/portlibs/switch2/lib/libEGL.a
+
+      - name: Build and verify NetSurf for Nintendo Switch 2
+        run: |
+          chmod +x scripts/build-switch2.sh tools-switch/build-prefix-switch2.sh
+          bash scripts/build-switch2.sh
+
+      - name: Upload Switch 2 NRO artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: netsurf-switch2-nro
+          path: |
+            netsurf.nro
+            netsurf-switch2.nro
+            netsurf/nsfb-switch2.map
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub Release (Switch 1 + Switch 2)
+    needs: [ build-switch1, build-switch2 ]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Switch 1 NRO
+        uses: actions/download-artifact@v4
+        with:
+          name: netsurf-switch1-nro
+          path: release-assets
+
+      - name: Download Switch 2 NRO
+        uses: actions/download-artifact@v4
+        with:
+          name: netsurf-switch2-nro
+          path: release-assets
+
+      - name: Publish Release Assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release-assets/netsurf-switch2.nro
+            release-assets/netsurf-switch1.nro

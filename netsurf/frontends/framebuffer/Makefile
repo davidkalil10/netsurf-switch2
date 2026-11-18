@@ -65,19 +65,40 @@ $(eval $(call pkg_config_find_and_add,libnsfb,libnsfb))
 LDFLAGS += -Wl,--no-whole-archive
 endif
 
-# Nintendo Switch (devkitA64/libnx) link requirements
+# Nintendo Switch (devkitA64/libnx or Switch 2 libounce/OunceVK) link requirements
 ifeq ($(HOST),aarch64-none-elf)
-  LDFLAGS += -specs=$(DEVKITPRO)/libnx/switch.specs
-  LDFLAGS += -L$(DEVKITPRO)/portlibs/switch/lib -L$(DEVKITPRO)/libnx/lib
-  # SDL2 backend deps (sdl2.pc --static)
-  LDFLAGS += -lSDL2 -lEGL -lglapi -ldrm_nouveau -lstdc++
-  # switch-curl links against mbedtls but its .pc omits it
-  LDFLAGS += -lmbedtls -lmbedx509 -lmbedcrypto
-  # charset conversion (local portlib build)
-  LDFLAGS += -liconv
-  # media player (ffmpeg portlib; no TLS, http/file only)
-  LDFLAGS += -lavformat -lavcodec -lswscale -lswresample -lavutil -ldav1d -lbz2 -lz
-  LDFLAGS += -lnx -lm
+  ifeq ($(SWITCH2),1)
+    LDFLAGS += -specs=$(DEVKITPRO)/libounce/switch.specs -Wl,-Map,$(CURDIR)/nsfb-switch2.map
+    ifneq ($(strip $(SWITCH2_FFMPEG_DIR)),)
+      LDFLAGS += -L$(SWITCH2_FFMPEG_DIR)/lib
+    endif
+    LDFLAGS += -L$(DEVKITPRO)/portlibs/switch2/lib -L$(DEVKITPRO)/portlibs/switch/lib -L$(DEVKITPRO)/libounce/lib
+    LDFLAGS += -Wl,--start-group
+    ifneq ($(strip $(SWITCH2_FFMPEG_DIR)),)
+      LDFLAGS += $(SWITCH2_FFMPEG_DIR)/lib/libavformat.a \
+                 $(SWITCH2_FFMPEG_DIR)/lib/libavcodec.a \
+                 $(SWITCH2_FFMPEG_DIR)/lib/libswscale.a \
+                 $(SWITCH2_FFMPEG_DIR)/lib/libswresample.a \
+                 $(SWITCH2_FFMPEG_DIR)/lib/libavutil.a
+    else
+      LDFLAGS += -lavformat -lavcodec -lswscale -lswresample -lavutil
+    endif
+    LDFLAGS += -lSDL2 -lstdc++ -lmbedtls -lmbedx509 -lmbedcrypto -liconv -ldav1d -lbz2 -lz
+    LDFLAGS += -Wl,--end-group
+    LDFLAGS += -lEGL -lnx -lm
+  else
+    LDFLAGS += -specs=$(DEVKITPRO)/libnx/switch.specs
+    LDFLAGS += -L$(DEVKITPRO)/portlibs/switch/lib -L$(DEVKITPRO)/libnx/lib
+    # SDL2 backend deps (sdl2.pc --static)
+    LDFLAGS += -lSDL2 -lEGL -lglapi -ldrm_nouveau -lstdc++
+    # switch-curl links against mbedtls but its .pc omits it
+    LDFLAGS += -lmbedtls -lmbedx509 -lmbedcrypto
+    # charset conversion (local portlib build)
+    LDFLAGS += -liconv
+    # media player (ffmpeg portlib; no TLS, http/file only)
+    LDFLAGS += -lavformat -lavcodec -lswscale -lswresample -lavutil -ldav1d -lbz2 -lz
+    LDFLAGS += -lnx -lm
+  endif
 endif
 
 # ---------------------------------------------------------------------------

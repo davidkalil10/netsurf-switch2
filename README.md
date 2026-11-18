@@ -1,8 +1,9 @@
-# NetSurf for Nintendo Switch
+# NetSurf for Nintendo Switch 2 & Switch 1 (`netsurf-switch2`)
 
-A true port of the NetSurf browser engine to Nintendo Switch homebrew, the first
-of its kind. Built with devkitA64/libnx in WSL Arch Linux. Verified rendering
-real sites over HTTPS on hardware.
+A port of the NetSurf browser engine to **Nintendo Switch 2** (`ounce-devkit` / `libounce` + `OunceVK`) and **Nintendo Switch 1** (`devkitA64` / `libnx`). Verified rendering real sites over HTTPS on hardware.
+
+> **Nintendo Switch 2 Port (`ounce-devkit` / `libounce` + `OunceVK`):** Adapted and maintained by **David Kalil Braga** ([@davidkalil10](https://github.com/davidkalil10)).
+> Special thanks to **[etonedemid](https://github.com/etonedemid)**, creator of the original **[netsurf-switch](https://github.com/etonedemid/netsurf-switch)** port, and to the **[NetSurf Browser](https://www.netsurf-browser.org/)** team.
 
 ## Support
 
@@ -72,12 +73,22 @@ JavaScript can be turned off with `enable_javascript:0` in
 
 ## Development
 
+### Nintendo Switch 2 (`libounce` + `OunceVK`)
+- `scripts/build-switch2.sh`: builds `prefix-switch2` (`libiconv` + `QuickJS-ng` for Cortex-A78C), compiles a clean Switch 2 FFmpeg 7.1 (`--disable-nvtegra`), builds and links NetSurf against `libounce` + `OunceVK`, packages `netsurf-switch2.nro`, and verifies the `.nro` (`MOD0`/`OUN0` + `ASET`) and linker map with `tools/verify_switch2_package.py`.
+
+### Nintendo Switch 1 (`libnx`)
 - `tools-switch/build.sh` / `ns-make.sh`: cross build in the devkitA64
   Docker image; `tools-switch/package.sh` makes `switch-dist/netsurf.nro`
 - `tools-switch/native-make.sh`: native Linux build of the same tree with
   the framebuffer frontend, for headless testing:
   `NS_SCREENSHOT=out.ppm NS_SCREENSHOT_DELAY=ms ./nsfb -f ram -w W -h H URL`
   (plus `NS_DUMPBOX=file` for the box tree, `NS_CLICK=x,y` to click)
+
+## Credits & Acknowledgments
+
+- **Original Nintendo Switch Port (`netsurf-switch`)**: Created by **[etonedemid](https://github.com/etonedemid)** ([etonedemid/netsurf-switch](https://github.com/etonedemid/netsurf-switch)).
+- **NetSurf Browser Engine**: Developed by the **[NetSurf Browser Project](https://www.netsurf-browser.org/)**.
+- **Nintendo Switch 2 Port (`netsurf-switch2`)**: Adapted to `ounce-devkit` (`libounce` + `OunceVK`, Cortex-A78C, clean Switch 2 FFmpeg 7.1) by **David Kalil Braga** ([@davidkalil10](https://github.com/davidkalil10)).
 
 ## Controls
 
